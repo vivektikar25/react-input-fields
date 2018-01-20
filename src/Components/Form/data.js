@@ -8,6 +8,7 @@ export const firstNameData = {
   size: 100,
   maxlength: 5,
   validate: true,
+  disabled: false,
   validations: [
     {
       validationName: "required",

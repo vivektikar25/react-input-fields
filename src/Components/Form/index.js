@@ -1,6 +1,6 @@
 import React from "react";
 import * as data from "./data";
-import TextField from "./../Shared/TextField";
+import TextField from "reusable-text-field";
 import * as service from "./service"
 import "./Form.css"
 

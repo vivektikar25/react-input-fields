@@ -184,18 +184,11 @@ class TextField extends React.Component {
   };
 
   render() {
-    let style = {
-      margin: 2,
-      padding: 2,
-      ...this.props.style
-    };
     const customStyleClass = this.props.customStyleClass;
-
     return (
-      <div style={{ display: "inline" }}>
-
+      <div>
         {this.state.label ? (
-          <label for={this.state.name}>
+          <label>
             {this.state.label}
             {this.state.required ? <span style={{ color: "red" }}>*</span> : ""}
           </label>
@@ -211,7 +204,7 @@ class TextField extends React.Component {
           required={this.state.required}
           disabled={this.state.disabled}
         />
-        {this.state.validationMessage}
+        {this.state.validationMessage ? this.state.validationMessage : ""}
       </div>
     );
   }
