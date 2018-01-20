@@ -107,8 +107,8 @@ class TextField extends React.Component {
     let message = shouldErrorMessageBeShown ? (
       <div style={{ color: "red", fontSize: 11 }}>{validationMessage}</div>
     ) : (
-      ""
-    );
+        ""
+      );
     this.setState({ validationMessage: message });
   };
   getFailedValidation = (inputValue, validations) => {
@@ -193,7 +193,7 @@ class TextField extends React.Component {
 
     return (
       <div style={{ display: "inline" }}>
-        
+
         {this.state.label ? (
           <label for={this.state.name}>
             {this.state.label}
@@ -201,7 +201,7 @@ class TextField extends React.Component {
           </label>
         ) : null}
         <input
-          className={customStyleClass || "form-control"}
+          className={customStyleClass}
           type={this.state.type}
           onChange={this.handleChange}
           name={this.state.name}
