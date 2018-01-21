@@ -5,8 +5,6 @@ export const firstNameData = {
   label: "First Name",
   placeholder: "",
   required: true,
-  size: 100,
-  maxlength: 5,
   validate: true,
   disabled: false,
   validations: [
@@ -43,8 +41,6 @@ export const lastNameData = {
   label: "Last Name",
   placeholder: "",
   required: true,
-  size: 100,
-  maxlength: 5,
   validate: true,
   validations: [
     {
