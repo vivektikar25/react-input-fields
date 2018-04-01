@@ -2,7 +2,7 @@ export const firstNameData = {
   value: "",
   type: "text",
   name: "firstName",
-  label: "First Name",
+  label: "First Name new",
   placeholder: "",
   required: true,
   validate: true,
