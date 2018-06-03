@@ -1,53 +1,70 @@
-
 import React from "react";
+import * as service from "./service";
+import _ from "lodash";
 
-class TextField extends React.Component {
+export default class TextField extends React.Component {
   constructor(props) {
     super(props);
     this.state = props.data || {};
+    this.state.parentValue = props.data.value;
     this.state.isFormSubmitted = props.isFormSubmitted || false;
-    this.state.isTextFieldDirty = props.isTextFieldDirty || false;
+    this.state.isTextFieldDirty = false;
     this.handleChange = this.handleChange.bind(this);
+    this.updateParentFormWithDebouncedFieldValue = _.debounce(
+      this.updateParentFormFieldValue,
+      this.props.delay || 0
+    );
+    this.props.recordSelection(props.data.name, props.data.value);
   }
 
   componentDidMount = () => {
-    this.validateTextField(
-      this.state.value,
-      this.state.validations,
-      this.state.isFormSubmitted
-    );
+    this.validateTextField();
   };
 
   componentWillReceiveProps(nextProps) {
-    const isValueChanged = this.state.value != nextProps.data.value;
-    if (nextProps.isTextFieldDirty !== undefined) {
-      this.setState({
-        ...nextProps.data,
-        isFormSubmitted: nextProps.isFormSubmitted,
-        isTextFieldDirty: nextProps.isTextFieldDirty
-      });
+    let value;
+
+    let isParentValueChanged = this.state.parentValue !== nextProps.data.value;
+    let isFormSubmittedChanged =
+      this.state.isFormSubmitted !== nextProps.isFormSubmitted;
+    let formDisableStatusChanged =
+      this.state.disabled !== nextProps.data.disabled;
+
+    const shouldStateUpdate =
+      isParentValueChanged ||
+      isFormSubmittedChanged ||
+      formDisableStatusChanged;
+
+    if (isParentValueChanged) {
+      value = nextProps.data.value;
+      this.props.recordSelection(this.state.name, value);
     } else {
-      this.setState({
-        ...nextProps.data,
-        isFormSubmitted: nextProps.isFormSubmitted
-      });
+      value = this.state.value;
     }
 
-    if (nextProps.isFormSubmitted || isValueChanged) {
-      this.validateTextField(
-        nextProps.data.value,
-        this.state.validations,
-        nextProps.isFormSubmitted
-      );
-    }
+    this.setState(
+      {
+        ...nextProps.data,
+        value,
+        parentValue: isParentValueChanged ? value : this.state.parentValue,
+        isFormSubmitted: nextProps.isFormSubmitted
+      },
+      () => {
+        if (isFormSubmittedChanged || isParentValueChanged) {
+          this.validateTextField();
+        }
+      }
+    );
   }
-  shouldComponentUpdate(nextProps) {
-    const isValueChanged =
-      this.state.value != nextProps.data.value ||
-      this.state.disabled != nextProps.data.disabled;
-    const isFormSubmittedChanged =
-      nextProps.isFormSubmitted !== this.state.isFormSubmitted;
-    return isFormSubmittedChanged || isValueChanged;
+
+  shouldComponentUpdate(nextProps, nextState) {
+    const isRerenderRequired =
+      this.state.value !== nextState.value ||
+      this.state.disabled !== nextProps.data.disabled ||
+      this.state.validationMessage !== nextState.validationMessage ||
+      this.state.isFormSubmitted !== nextProps.isFormSubmitted;
+
+    return isRerenderRequired;
   }
 
   componentWillUnmount() {
@@ -56,137 +73,67 @@ class TextField extends React.Component {
     }
   }
 
-  handleChange({ target }) {
-    let value = target.value; // This is required as target.value gets reset
-    //during setState() and target.value sent to recordSelection on following line is ""(empty)
+  validateTextField = () => {
+    let {
+      value,
+      validations,
+      isFormSubmitted,
+      validate,
+      name,
+      isTextFieldDirty
+    } = this.state;
 
-    this.setState({ isTextFieldDirty: true }, () => {
-      this.props.recordSelection(value);
-    });
-  }
-
-  validateTextField = (inputValue, validations, isFormSubmitted) => {
-    if (!this.state.validate) {
+    if (!validate) {
       return;
     }
-    let priorityWiseValidationList = this.getPriorityWiseValidationList(
-      validations
-    );
-    let failedValidation = this.getFailedValidation(
-      inputValue && inputValue.trim && inputValue.trim(),
-      priorityWiseValidationList
-    );
 
-    if (failedValidation) {
-      let shouldErrorMessageBeShown =
-        this.state.isTextFieldDirty || isFormSubmitted;
-      let validationMessage = failedValidation.message;
-
-      this.displayValidationMessage(
-        shouldErrorMessageBeShown,
-        validationMessage
-      );
+    let {
+      validationMessage,
+      shouldErrorMessageShown
+    } = service.validateTextField(
+      value,
+      validations,
+      isFormSubmitted,
+      validate,
+      name,
+      isTextFieldDirty
+    );
+    if (validationMessage) {
       this.props.updateFormsStatus(false, this.state.name);
     } else {
       this.props.updateFormsStatus(true, this.state.name);
-      this.displayValidationMessage(false, "");
     }
+    this.displayValidationMessage(shouldErrorMessageShown, validationMessage);
   };
 
-  getPriorityWiseValidationList = validations => {
-    let priorityWiseValidationList;
-    priorityWiseValidationList = validations.sort(
-      (prevElement, nextElement) => {
-        return prevElement.priority - nextElement.priority;
-      }
-    );
-    return priorityWiseValidationList;
+  handleChange({ target }) {
+    let value = target.value;
+    this.setState({ isTextFieldDirty: true, value }, () => {
+      this.validateTextField();
+    });
+    this.updateParentFormWithDebouncedFieldValue(this.state.name, value);
+  }
+
+  updateParentFormFieldValue = (name, value) => {
+    this.props.recordSelection(name, value);
   };
 
   displayValidationMessage = (shouldErrorMessageBeShown, validationMessage) => {
-    let message = shouldErrorMessageBeShown ? (
-      <div style={{ color: "red", fontSize: 11 }}>{validationMessage}</div>
-    ) : (
-        ""
-      );
+    let message =
+      shouldErrorMessageBeShown && validationMessage ? (
+        <div style={{ color: "red", fontSize: 11 }}>{validationMessage}</div>
+      ) : null;
     this.setState({ validationMessage: message });
-  };
-  getFailedValidation = (inputValue, validations) => {
-    const failedValidation = validations.find(validation => {
-      return this.isValidationFailed(inputValue, validation);
-    });
-    return failedValidation;
-  };
-
-  isValidationFailed = (inputValue, validation) => {
-    switch (validation.validationName) {
-      case "required":
-        return this.validateRequiredValidation(inputValue);
-        break;
-      case "minLength":
-        return this.validateMinLengthValidation(inputValue, validation.value);
-        break;
-      case "maxLength":
-        return this.validateMaxLengthValidation(inputValue, validation.value);
-        break;
-      case "isNumber":
-        return this.validateIsNumberValidation(inputValue, validation.value);
-        break;
-      case "minValue":
-        return this.validateMinValueValidation(inputValue, validation.value);
-        break;
-      case "maxValue":
-        return this.validateMaxValueValidation(inputValue, validation.value);
-        break;
-      case "regex":
-        return this.validateRegexValidation(inputValue, validation.value);
-        break;
-      default:
-        return false;
-        break;
-    }
-  };
-
-  validateRequiredValidation = inputValue => {
-    return inputValue && inputValue.toString().length ? false : true;
-  };
-
-  validateMinLengthValidation = (inputValue, minLength) => {
-    return inputValue
-      ? inputValue.toString().length >= minLength ? false : true
-      : false;
-  };
-
-  validateMaxLengthValidation = (inputValue, maxLength) => {
-    return inputValue
-      ? inputValue.toString().length <= maxLength ? false : true
-      : false;
-  };
-
-  validateRegexValidation = (inputValue, regex) => {
-    return inputValue ? (inputValue.match(regex) ? false : true) : false;
-  };
-
-  validateMinValueValidation = (inputValue, minValue) => {
-    return inputValue ? (+inputValue >= minValue ? false : true) : false;
-  };
-
-  validateMaxValueValidation = (inputValue, maxValue) => {
-    return inputValue ? (+inputValue <= maxValue ? false : true) : false;
-  };
-
-  validateIsNumberValidation = inputValue => {
-    return inputValue ? (typeof inputValue === "number" ? false : true) : false;
-  };
-
-  setTextFieldsDirtyFlag = () => {
-    this.isTextFieldDirty = true;
   };
 
   render() {
+    let customStyle = {
+      ...this.props.style
+    };
     const customStyleClass = this.props.customStyleClass;
+
     return (
-      <div>
+      <div style={{ display: "inline" }}>
         {this.state.label ? (
           <label>
             {this.state.label}
@@ -194,20 +141,18 @@ class TextField extends React.Component {
           </label>
         ) : null}
         <input
-          className={customStyleClass}
-          type={this.state.type}
+          className={customStyleClass || "form-control"}
+          style={customStyle}
+          type="text"
           onChange={this.handleChange}
           name={this.state.name}
           required={this.state.required}
           placeholder={this.state.placeholder}
           value={this.state.value}
-          required={this.state.required}
           disabled={this.state.disabled}
         />
-        {this.state.validationMessage ? this.state.validationMessage : ""}
+        {this.state.validationMessage}
       </div>
     );
   }
 }
-
-export default TextField;

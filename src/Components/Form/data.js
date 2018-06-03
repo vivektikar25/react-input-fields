@@ -1,8 +1,7 @@
-export const firstNameData = {
-  value: "",
-  type: "text",
-  name: "firstName",
-  label: "First Name new",
+export const firstFieldData = {
+  value: "first field $value",
+  name: "firstField",
+  label: "First Field",
   placeholder: "",
   required: true,
   validate: true,
@@ -34,11 +33,11 @@ export const firstNameData = {
   ]
 };
 
-export const lastNameData = {
+export const secondFieldData = {
   value: "",
   type: "text",
-  name: "lastName",
-  label: "Last Name",
+  name: "secondField",
+  label: "Second Field",
   placeholder: "",
   required: true,
   validate: true,
