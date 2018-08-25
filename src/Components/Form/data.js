@@ -1,5 +1,5 @@
 export const firstFieldData = {
-  value: "first field $value",
+  value: "Default value",
   name: "firstField",
   label: "First Field",
   placeholder: "",
